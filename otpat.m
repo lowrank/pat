@@ -141,8 +141,13 @@ classdef otpat < handle
                 init(obj.cache.n  + obj.cache.ndof) = obj.parameter.a(obj.cache.ndof);
                 
             end
-            opts    = struct( 'factr', 1e0, 'pgtol', 1e-10, 'm', 20, 'x0', init, 'maxIts', 600, 'maxTotalIts', 1e5);
+            opts    = struct( 'factr', 1e0, 'pgtol', 1e-10, 'm', 20, ...
+                'x0', init, 'maxIts', 200, 'maxTotalIts', 1e5);
             opts.printEvery     = 1;
+    
+            opts.errFcn{1} = @(x)(norm(x(1:obj.cache.n) - obj.parameter.d)./norm(obj.parameter.d));
+            opts.errFcn{2} = @(x)(norm(x(obj.cache.n+1:2*obj.cache.n) - obj.parameter.a)./norm(obj.parameter.a));
+            opts.errFcn{3} = @(x)(norm(x(1:obj.cache.n)./(x(obj.cache.n+1:2*obj.cache.n)).^2 - obj.parameter.d./(obj.parameter.a).^2)./norm(obj.parameter.d./(obj.parameter.a).^2));
 
             [res, ~, hist] =...
                 lbfgsb_c(@obj.objective_gradient, zeros(size(init)), inf * ones(size(init)), opts); 

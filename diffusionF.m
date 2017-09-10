@@ -14,5 +14,10 @@ function [ret] = diffusionF(x)
     rsq =(x(1,:) - 0.5).^2 + (x(2,:) + 0.2).^2;
     ret = ret + 0.004 * exp(-dec * rsq);
     
+    % cross-talk term
+    dec = 4.0;
+    rsq = (x(1,:) - 0.2).^2 + (x(2,:) - 0.2).^2;
+    ret = ret + 0.002 * exp(-dec * rsq);
+    
 end
 

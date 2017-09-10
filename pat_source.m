@@ -1,8 +1,8 @@
 function [h] = pat_source()
     % ot source are geometry related. Now on a circle.
-    K = 6;
+    K = 36;
     h = cell(K, 1);
-    dec = 2.0;
+    dec = 10.0;
     theta = 2 * pi / K;
     for d = 1 : K
         c = cos(theta * d);

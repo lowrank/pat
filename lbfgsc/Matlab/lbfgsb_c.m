@@ -207,7 +207,7 @@ if nargin > 5
         history(outerIter,3) = errFcn(x);
     elseif iscell( errFcn )
         for j = 1:length(errFcn)
-            history(outer_count,j+2) = errFcn{j}(x);
+            history(outerIter,j+2) = errFcn{j}(x);
         end
     end
     
@@ -233,7 +233,7 @@ function printFcn(k,history)
 fprintf('Iter %5d, f(x) = %2e, ||grad||_infty = %.2e', ...
     k, history(k,1), history(k,2) );
 for col = 3:size(history,2)
-    fprintf(', %.2e', history(k,col) );
+    fprintf(', %.7e', history(k,col) );
 end
 fprintf('\n');
 end
