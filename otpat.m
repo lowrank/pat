@@ -85,16 +85,17 @@ classdef otpat < handle
         
         
         function [f, g] = objective_gradient(obj, p)
-            assert(size(p, 1) == 2 * obj.cache.n);
+            assert(size(p, 1) == 3 * obj.cache.n);
             local = struct('d', p(1:obj.cache.n),...
-                'a', p(obj.cache.n+1:end), ...
-                'g', ones(obj.cache.n, 1));
+                'a', p(obj.cache.n+1: 2 * obj.cache.n), ...
+                'g', p(obj.cache.n * 2 + 1:end));
             [m, u, v, mp, mo] = forward(obj, local);
             z = obj.measurement;
             
             f = 0;        
             g_d = zeros(obj.cache.n, 1);
             g_a = zeros(obj.cache.n, 1);
+            g_g = zeros(obj.cache.n, 1);
             
             %% PAT part
             for sId = 1:size(m.h, 2)
@@ -103,7 +104,7 @@ classdef otpat < handle
                 f = f + 0.5 * obj.normsq(crxRes);
 
                 g_a = g_a +  local.g .* (u(:, sId)) .* crxRes;
-
+                g_g = g_g +  local.a .* (u(:, sId)) .* crxRes;
                 %% adjoint
                 phi =  mp \ (local.a .* local.g .* crxRes);
 
@@ -113,32 +114,61 @@ classdef otpat < handle
 
                 g_a = g_a - ...
                     obj.model.adj(phi, u(:,sId), zeros(obj.cache.n, 1), ones(obj.cache.n, 1));
+                
             end
-                    
+            
+            for sId = 1:size(m.j,2)
+                
+                crxRes = m.j(:, sId) - z.j(:,sId);
+                
+                f = f + 0.5 * obj.normsq(crxRes);
+                
+                l = zeros(obj.cache.n, 1);
+                l(obj.cache.ndof) = crxRes;
+                phi = conj(mo) \ l;
+                
+                
+                rp = real(phi); cp = imag(phi);
+                rc = real(v(:, sId)); cc = imag(v(:, sId));
+                
+                g_d = g_d - obj.model.adj(rp, rc, ones(obj.cache.n, 1), zeros(obj.cache.n, 1)) - ...
+                     obj.model.adj(cp, cc, ones(obj.cache.n, 1), zeros(obj.cache.n, 1));
+                 
+                g_a = g_a -  obj.model.adj(rp, rc, zeros(obj.cache.n, 1), ones(obj.cache.n, 1)) -...
+                     obj.model.adj(rp, rc,  zeros(obj.cache.n, 1), ones(obj.cache.n, 1)) ;
+                
+            end                 
             
             rd = obj.reg.d *(size(m.h, 2)) * obj.cache.n;
             ra = obj.reg.a *(size(m.h, 2)) * obj.cache.n;
+            rg = obj.reg.g *(size(m.h, 2)) * obj.cache.n;
             
             %% regularization
-            f = f + 0.5 * rd *(local.d'* obj.cache.s * local.d) + 0.5 * ra * (local.a'*obj.cache.s*local.a);
+            f = f + 0.5 * rd *(local.d'* obj.cache.s * local.d);
+            f = f + 0.5 * ra * (local.a'*obj.cache.s*local.a);
+            f = f + 0.5 * rg * (local.g'*obj.cache.s*local.g);
             g_d = g_d + rd * obj.cache.s * local.d;
             g_a = g_a + ra * obj.cache.s * local.a;
+            g_g = g_g + rg * obj.cache.s * local.g;
 
             %% boundary prescribed
             g_d(obj.cache.ndof) = 0.;
             g_a(obj.cache.ndof) = 0.;
+            g_g(obj.cache.ndof) = 0.;
 
-            g = [g_d; g_a];
+            g = [g_d; g_a; g_g];
              
         end
         
         function [res, hist] = backward(obj, init)
             if (nargin == 1)
-                init = zeros(obj.cache.n * 2, 1);
+                init = zeros(obj.cache.n * 3, 1);
                 init(1:obj.cache.n) = 0.05;
                 init(obj.cache.ndof) = obj.parameter.d(obj.cache.ndof);
-                init(obj.cache.n + 1:end) = 0.1;
+                init(obj.cache.n + 1: 2 * obj.cache.n) = 0.1;
                 init(obj.cache.n  + obj.cache.ndof) = obj.parameter.a(obj.cache.ndof);
+                init(2 * obj.cache.n + 1:end) = 1.0;
+                init(2 * obj.cache.n  + obj.cache.ndof) = obj.parameter.g(obj.cache.ndof);
                 
             end
             opts    = struct( 'factr', 1e0, 'pgtol', 1e-10, 'm', 20, ...
