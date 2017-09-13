@@ -121,21 +121,22 @@ classdef otpat < handle
                 
                 crxRes = m.j(:, sId) - z.j(:,sId);
                 
-                f = f + 0.5 * obj.normsq(crxRes);
+                f = f + 0.5 * norm(crxRes)^2;
                 
                 l = zeros(obj.cache.n, 1);
                 l(obj.cache.ndof) = crxRes;
-                phi = conj(mo) \ l;
+                phi = mo \ conj(l);
+                
                 
                 
                 rp = real(phi); cp = imag(phi);
                 rc = real(v(:, sId)); cc = imag(v(:, sId));
                 
-                g_d = g_d - obj.model.adj(rp, rc, ones(obj.cache.n, 1), zeros(obj.cache.n, 1)) - ...
+                g_d = g_d - obj.model.adj(rp, rc, ones(obj.cache.n, 1), zeros(obj.cache.n, 1)) + ...
                      obj.model.adj(cp, cc, ones(obj.cache.n, 1), zeros(obj.cache.n, 1));
                  
-                g_a = g_a -  obj.model.adj(rp, rc, zeros(obj.cache.n, 1), ones(obj.cache.n, 1)) -...
-                     obj.model.adj(rp, rc,  zeros(obj.cache.n, 1), ones(obj.cache.n, 1)) ;
+                g_a = g_a -  obj.model.adj(rp, rc, zeros(obj.cache.n, 1), ones(obj.cache.n, 1)) +...
+                     obj.model.adj(cp, cc,  zeros(obj.cache.n, 1), ones(obj.cache.n, 1)) ;
                 
             end                 
             
